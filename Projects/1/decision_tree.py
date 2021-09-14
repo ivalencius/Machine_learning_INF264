@@ -62,17 +62,22 @@ def learn_Node(node, X, Y, metric):
     # If all data points have same label
     labels, counts= np.unique(Y, return_counts=True)
     if len(labels) == 1:
+        # print('Case 1')
         newLeaf = Node()
         newLeaf.make_leaf(label=Y.item(0))
+        # print(newLeaf)
         return newLeaf
     
     # Case 2:
     # If all data points have identical feature values
     unique_feature = len(np.unique(X))
     if unique_feature == 1:
+        # print('Case 2')
         label_idx = counts.index(max((counts)))
         newLeaf = Node()
         newLeaf.make_leaf(label=labels[label_idx])
+        # print(newLeaf)
+        return newLeaf
     
     # Case 3:
     # Get Entropy for each feature
@@ -94,17 +99,19 @@ def learn_Node(node, X, Y, metric):
     node.add_condition(condition)
     # SPLIT INTO X1, X2, Y1, Y2 BASED ON CONDITION
     X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
-    yesNode = learn_Node(Node(), X1, Y1, metric)
-    noNode = learn_Node(Node(), X2, Y2, metric)
-    node.set_children(noNode, yesNode)
+    yesNode = Node()
+    noNode= Node()
+    node_left = learn_Node(noNode, X2, Y2, metric)
+    node_right = learn_Node(yesNode, X1, Y1, metric)
+    node.set_children(node_left, node_right)
+    # print('Set Children')
     return node
     
-def learn(X, Y, impurity_measure):
+def learn(root, X, Y, impurity_measure):
     if impurity_measure == 'entropy':
         metric = 0
-    rootNode = Node()
-    rootNode = learn_Node(rootNode, X, Y, metric)
-    return rootNode
+    learn_Node(root, X, Y, metric)
+    # return rootNode
     # Can then use rootNode.predict(x) to predict any x
 
 def load_magic(filename):
@@ -127,13 +134,32 @@ def main():
     # print('Data shape: '+str(D.shape))
     # X = D[:, 0:9]
     # Y = D[:, 10]
+    print('\n** LOADING DATA **')
     X, Y = load_magic(magic04)
     print('Shape of X: '+str(X.shape))
     print('Shape of Y: '+str(Y.shape))
-    # Y labels are now in ASCII --> convert back to determine class
-    Tree = learn(X, Y, impurity_measure='entropy')
     
-    for i in range(20):
-        print('\nPrediction '+str(i)+': ' +Tree.predict(X[0,:]))
+    print('\n** TRAINING **')
+    # Y labels are now in ASCII --> convert back to determine class
+    Tree = Node()
+    learn(Tree, X, Y, impurity_measure='entropy')
+    
+    print('\n** PRINT TREE **')
+    Tree.print_Nodes()
+    
+    print('\n** EVALUATING **')
+    # Y_pred = []
+    row, _ = X.shape
+    correct = 0
+    for i in range(row):
+        # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
+        # Y_pred.append(ord(X[i, :]))
+        pred = ord(Tree.predict(X[i, :]))
+        if pred == Y[i]: correct += 1
+    
+    print('\n** ACCURACY **')
+    acc = correct/row
+    print('\t->'+str(acc))
+        
     
 main()
