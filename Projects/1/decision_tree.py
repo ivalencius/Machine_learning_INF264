@@ -5,9 +5,9 @@ from numpy.lib.npyio import genfromtxt
 from structures import Node
 
 # Split condition, outputs X s.t. X1 = X1>=mean and X2<mean
-def split_by_mean(X, Y, mean):
-    idx_yes = X>=mean
-    idx_no = X<mean
+def split_by_mean(X, Y, mean, col):
+    idx_yes = X[:, col]>=mean
+    idx_no = X[:, col]<mean
     return (X[idx_yes], X[idx_no], Y[idx_yes], Y[idx_no])
 
 # NEED TO FIX --> CONDITIONAL ENTROPY
@@ -37,8 +37,8 @@ def entropy(Y, Y_split1, Y_split2, conditional):
     if conditional:
         H = 0
         
-        split1_H = entropy(Y_split1, conditional=False)
-        split2_H = entropy(Y_split2, conditional=False)
+        split1_H = entropy(Y_split1, Y_split1, Y_split2, conditional=False)
+        split2_H = entropy(Y_split2, Y_split1, Y_split2, conditional=False)
         split1_N = len(Y_split1)
         split2_N = len(Y_split2)
         
@@ -52,7 +52,7 @@ def entropy(Y, Y_split1, Y_split2, conditional):
 
 def information_gain(Y, Y_split1, Y_split2, metric):
     if metric == 0: # Use Entropy
-        H1 = entropy(Y, conditional=False)
+        H1 = entropy(Y, Y_split1, Y_split2, conditional=False)
         H2 = entropy(Y, Y_split1, Y_split2, conditional=True)
     return H1-H2
     
@@ -60,7 +60,7 @@ def information_gain(Y, Y_split1, Y_split2, metric):
 def learn_Node(node, X, Y, metric):
     # Case 1:
     # If all data points have same label
-    labels, counts = len(np.unique(Y))
+    labels, counts= np.unique(Y, return_counts=True)
     if len(labels) == 1:
         newLeaf = Node()
         newLeaf.make_leaf(label=Y.item(0))
@@ -79,23 +79,23 @@ def learn_Node(node, X, Y, metric):
     cols = X.shape[1]
     IGs = [] # Index = feature, will store (IG, mean)
     Means = []
-    for col in range(cols):
-        extracted = X[:,col]
+    for c in range(cols):
         # Split data based on mean
-        mean = np.mean(extracted)
-        _, _, y_split1, y_split2 = split_by_mean(extracted, Y, mean)
+        mean = np.mean(X[:, c])
+        _, _, y_split1, y_split2 = split_by_mean(X, Y, mean, col=c)
         IGs.append(information_gain(Y, y_split1, y_split2, metric))
         Means.append(mean)
-    
+
     # Determine feature with max gain
-    feature_idx = list.index(max(IGs)) 
+    # feature_idx = list.index(max(IGs))
+    feature_idx = np.argmax(IGs, axis=0) 
     # Remember this index also index of the FEATURE
-    condition = lambda x: x[:, feature_idx] >= Means[feature_idx]
+    condition = lambda x: x[feature_idx] >= Means[feature_idx]
     node.add_condition(condition)
     # SPLIT INTO X1, X2, Y1, Y2 BASED ON CONDITION
-    X1, X2, Y1, Y2 = split_by_mean(X[:, feature_idx], Y, Means[feature_idx])
-    yesNode = learn_Node(Node(), X1, Y1)
-    noNode = learn_Node(Node(), X2, Y2)
+    X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
+    yesNode = learn_Node(Node(), X1, Y1, metric)
+    noNode = learn_Node(Node(), X2, Y2, metric)
     node.set_children(noNode, yesNode)
     return node
     
@@ -114,7 +114,7 @@ def load_magic(filename):
         processed = line.split(',')
         x_line = list(map(float, processed[0:9]))
         y_label = processed[-1][0]
-        y_int = int(float(y_label))
+        y_int = ord(y_label)
         X.append(x_line)
         Y.append(y_int)
     # print(x_line)
@@ -130,8 +130,10 @@ def main():
     X, Y = load_magic(magic04)
     print('Shape of X: '+str(X.shape))
     print('Shape of Y: '+str(Y.shape))
-    # Y labels are now ints --> convert back to determine class
+    # Y labels are now in ASCII --> convert back to determine class
     Tree = learn(X, Y, impurity_measure='entropy')
     
-    Tree.predict(X[1,:])
+    for i in range(20):
+        print('\nPrediction '+str(i)+': ' +Tree.predict(X[0,:]))
+    
 main()

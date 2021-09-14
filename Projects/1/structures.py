@@ -22,7 +22,7 @@ class Node:
     # branches based on condition and classifies via next Node
     def predict(self, x):
         if self.label != None:
-            return self.label
+            return chr(self.label)
         test = self.condition(x)
         if test:
             val = self.right.predict(x) # Condition was true, branch right
