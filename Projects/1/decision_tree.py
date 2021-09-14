@@ -2,6 +2,10 @@ from math import log2
 import numpy as np
 from structures import Node
 
+# Split condition, outputs X s.t. X1 = X1>=mean and X2<mean
+def split_by_mean(X, mean):
+    return (X[X>=mean], X[X<mean])
+
 # NEED TO FIX --> CONDITIONAL ENTROPY
 def entropy(X, condition):
     # Condition will always be binary
@@ -40,9 +44,13 @@ def learn_Node(node, X, Y, metric):
     # Case 3:
     # Get Entropy for each feature
     cols = X.shape[1]
-    IGs = []
+    IGs = [] # Index = feature, will store (IG, mean)
     for col in range(cols):
         extracted = X[:,col]
+        # Split data based on mean
+        mean = np.mean(extracted)
+        x1, x2 = split_by_mean(extracted, X)
+        
     # NEED TO FIND IG FOR EACH FEATURE
     # ASSUMING 'condition' IS THE NEW CONDITION
     condition = ...
