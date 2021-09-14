@@ -2,6 +2,7 @@ from math import log2
 import numpy as np
 from numpy.lib.npyio import genfromtxt
 from structures import Node
+from sklearn.model_selection import train_test_split
 
 # Split condition, outputs X s.t. X1 = X1>=mean and X2<mean
 def split_by_mean(X, Y, mean, col):
@@ -57,6 +58,8 @@ def learn_Node(node, X, Y, metric):
     # If all data points have same label
     labels, counts= np.unique(Y, return_counts=True)
     if len(labels) == 1:
+        # print(Y)
+        # print()
         # print('Case 1')
         newLeaf = Node()
         newLeaf.make_leaf(label=Y.item(0))
@@ -98,6 +101,9 @@ def learn_Node(node, X, Y, metric):
     # print('X len:'+str(len(X)))
     # print('X1:'+str(len(X1)))
     # print('X2:'+str(len(X2)))
+    # print(Y1)
+    # print(Y2)
+    # print()
     yesNode = Node()
     noNode= Node()
     node_left = learn_Node(noNode, X2, Y2, metric)
@@ -139,26 +145,33 @@ def main():
     # Y = D[:, 10]
     print('\n** LOADING DATA **')
     X, Y = load_magic(magic04)
-    print('Shape of X: '+str(X.shape))
-    print('Shape of Y: '+str(Y.shape))
+    # print('Shape of X: '+str(X.shape))
+    # print('Shape of Y: '+str(Y.shape))
+    seed = 156
+    X_train, X_test, Y_train, Y_test = train_test_split(X,
+                                                        Y,
+                                                        test_size=0.2,
+                                                        shuffle=True, 
+                                                        random_state=seed)
+    
     
     print('\n** TRAINING **')
     # Y labels are now in ASCII --> convert back to determine class
     Tree = Node()
-    learn(Tree, X, Y, impurity_measure='entropy')
+    learn(Tree, X_train, Y_train, impurity_measure='entropy')
     
     print('\n** PRINT TREE **')
-    Tree.print_Nodes()
+    # Tree.print_Nodes()
     
     print('\n** EVALUATING **')
     # Y_pred = []
-    row, _ = X.shape
+    row, _ = X_test.shape
     correct = 0
     for i in range(row):
         # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
         # Y_pred.append(ord(X[i, :]))
-        pred = ord(Tree.predict(X[i, :]))
-        if pred == Y[i]: correct += 1
+        pred = ord(Tree.predict(X_test[i, :]))
+        if pred == Y_test[i]: correct += 1
     
     print('\n** ACCURACY **')
     acc = correct/row
