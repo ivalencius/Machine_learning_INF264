@@ -37,9 +37,11 @@ class Node:
     
     # Prints all children nodes
     def print_Nodes(self):
-        if self.left or self.right == None:
+        if self.label != None:
             print('LEAF LABEL: '+str(self.label))
         else:
-            print('NODE:')
+            print('NODE: ')
+            self.left.print_Nodes()
+            self.right.print_Nodes()
             # print('split on feature: '+str(self.cond))
                   

@@ -1,31 +1,26 @@
 from math import log2
-from tokenize import String
 import numpy as np
 from numpy.lib.npyio import genfromtxt
 from structures import Node
 
 # Split condition, outputs X s.t. X1 = X1>=mean and X2<mean
 def split_by_mean(X, Y, mean, col):
-    idx_yes = X[:, col]>=mean
-    idx_no = X[:, col]<mean
+    rows, _ = X.shape
+    idx_yes = []
+    idx_no = []
+    for r in range(rows):
+        if X[r, col] >= mean:
+            idx_yes.append(r)
+        else:
+            idx_no.append(r)
+    # idx_yes = X[:, col]>=mean
+    # idx_no = X[:, col]<mean
+    # print('X_idx:'+str(len(idx_yes)))
+    # print('X subset:'+str(len(X[idx_yes])))
     return (X[idx_yes], X[idx_no], Y[idx_yes], Y[idx_no])
 
 # NEED TO FIX --> CONDITIONAL ENTROPY
 def entropy(Y, Y_split1, Y_split2, conditional):
-    # Condition will always be binary
-    # count_yes = 0
-    # count_no = 0
-    # N = len(X)
-    # for x in X:
-    #     if condition(x):
-    #         count_yes += 1
-    #     else:
-    #         count_no += 1
-    # P_x = count_yes/N
-    # P_not_x = count_no/N
-    # yes_case = P_x*log2(P_x)
-    # no_case = P_not_x*log2(P_not_x)
-    # H = -(yes_case+no_case)
     N = len(Y)
     (unique, counts) = np.unique(Y, return_counts=True)
     H = 0
@@ -89,6 +84,7 @@ def learn_Node(node, X, Y, metric):
         mean = np.mean(X[:, c])
         _, _, y_split1, y_split2 = split_by_mean(X, Y, mean, col=c)
         IGs.append(information_gain(Y, y_split1, y_split2, metric))
+        # print(len(y_split1))
         Means.append(mean)
 
     # Determine feature with max gain
@@ -99,12 +95,19 @@ def learn_Node(node, X, Y, metric):
     node.add_condition(condition)
     # SPLIT INTO X1, X2, Y1, Y2 BASED ON CONDITION
     X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
+    # print('X len:'+str(len(X)))
+    # print('X1:'+str(len(X1)))
+    # print('X2:'+str(len(X2)))
     yesNode = Node()
     noNode= Node()
     node_left = learn_Node(noNode, X2, Y2, metric)
+    # node_left.print_Nodes()
     node_right = learn_Node(yesNode, X1, Y1, metric)
+    # node_right.print_Nodes()
     node.set_children(node_left, node_right)
     # print('Set Children')
+    # node.print_Nodes()
+    # print(node.left)
     return node
     
 def learn(root, X, Y, impurity_measure):
