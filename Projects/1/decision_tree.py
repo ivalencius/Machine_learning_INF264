@@ -20,7 +20,6 @@ def split_by_mean(X, Y, mean, col):
     # print('X subset:'+str(len(X[idx_yes])))
     return (X[idx_yes], X[idx_no], Y[idx_yes], Y[idx_no])
 
-# NEED TO FIX --> CONDITIONAL ENTROPY
 def entropy(Y, Y_split1, Y_split2, conditional):
     N = len(Y)
     (unique, counts) = np.unique(Y, return_counts=True)
@@ -45,12 +44,23 @@ def entropy(Y, Y_split1, Y_split2, conditional):
             
         #     H += xi/N * -(split_xi/split_N * log2(split_xi/split_N))     
     return H
-
+def gini(Y):
+    N = len(Y)
+    (unique, counts) = np.unique(Y, return_counts=True)
+    G = 0
+    for xi, xn in zip(unique, counts):
+        Gi= xi/N * (1-(xi/N))
+        G += Gi
+    return G
+        
 def information_gain(Y, Y_split1, Y_split2, metric):
     if metric == 0: # Use Entropy
         H1 = entropy(Y, Y_split1, Y_split2, conditional=False)
         H2 = entropy(Y, Y_split1, Y_split2, conditional=True)
-    return H1-H2
+        IG = H1-H2
+    elif metric == 1: # Use Gini
+        IG = gini(Y_split1)-gini(Y_split2)
+    return IG
     
 
 def learn_Node(node, X, Y, metric):
@@ -119,6 +129,11 @@ def learn_Node(node, X, Y, metric):
 def learn(root, X, Y, impurity_measure):
     if impurity_measure == 'entropy':
         metric = 0
+    elif impurity_measure == 'gini':
+        metric = 1
+    else:
+        print('ERROR: IMPROPER LEARNING METRIC')
+        return
     learn_Node(root, X, Y, metric)
     # return rootNode
     # Can then use rootNode.predict(x) to predict any x
@@ -138,12 +153,12 @@ def load_magic(filename):
     return np.asarray(X), np.asarray(Y)
 
 def main():
+    print('\n** LOADING DATA **')
     magic04 = open('magic04.data', 'r')
     # D = np.genfromtxt(magic04, delimiter=',')
     # print('Data shape: '+str(D.shape))
     # X = D[:, 0:9]
     # Y = D[:, 10]
-    print('\n** LOADING DATA **')
     X, Y = load_magic(magic04)
     # print('Shape of X: '+str(X.shape))
     # print('Shape of Y: '+str(Y.shape))
@@ -157,8 +172,10 @@ def main():
     
     print('\n** TRAINING **')
     # Y labels are now in ASCII --> convert back to determine class
-    Tree = Node()
-    learn(Tree, X_train, Y_train, impurity_measure='entropy')
+    impurity = 'gini'
+    entropy_tree = Node()
+    learn(entropy_tree, X_train, Y_train, impurity_measure=impurity)
+    print('Finished training %s model'%(impurity))
     
     print('\n** PRINT TREE **')
     # Tree.print_Nodes()
@@ -170,7 +187,7 @@ def main():
     for i in range(row):
         # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
         # Y_pred.append(ord(X[i, :]))
-        pred = ord(Tree.predict(X_test[i, :]))
+        pred = ord(entropy_tree.predict(X_test[i, :]))
         if pred == Y_test[i]: correct += 1
     
     print('\n** ACCURACY **')
