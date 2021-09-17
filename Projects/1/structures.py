@@ -13,7 +13,10 @@ class Node:
         self.label = label
         if self.left or self.right != None:
             print("ERROR: THIS LEAF HAS CHILDREN")
-            
+
+    def get_label(self):
+        return self.label
+    
     # Given a condition, add it 
     def add_condition(self, case):
         self.condition = case

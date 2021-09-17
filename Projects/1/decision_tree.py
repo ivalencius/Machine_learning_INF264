@@ -44,6 +44,7 @@ def entropy(Y, Y_split1, Y_split2, conditional):
             
         #     H += xi/N * -(split_xi/split_N * log2(split_xi/split_N))     
     return H
+
 def gini(Y):
     N = len(Y)
     (unique, counts) = np.unique(Y, return_counts=True)
@@ -125,8 +126,121 @@ def learn_Node(node, X, Y, metric):
     # node.print_Nodes()
     # print(node.left)
     return node
+
+# Returns correct predictions of a node
+# def predict_counts(node, X, Y):
+#     count = 0
+#     for x, y in zip(X, Y):
+#         if node.predict(x):
+#             count += 1
+#     return count, len(Y)
+
+def split(node, X, Y):
+    data_right = []
+    labels_right = []
+    data_left = []
+    labels_left =[]
+    for x, y in zip(X, Y):
+        if node.predict(x):
+            data_right.append(x)
+            labels_right.append(y)
+        else:
+            data_left.append(x)
+            labels_left.append(y)
+    return data_right, labels_right, data_left, labels_left
+
+# Determines accuracy of a subtree
+def get_child_counts(node, X, Y):
+    num = 0
+    count = 0
+
+    # If node is leaf
+    if node.get_label() != None:
+        label = node.get_label()
+        for y in Y:
+            if y == label:
+                num += 1
+        count += len(Y)
+        return num, count
+    else:
+        # Remember right = classified as true
+        x_r, y_r, x_l, y_l = split(node, X, Y)
+        correct_r, num_r = get_child_counts(node.right,
+                                            x_r,
+                                            y_r)
+        correct_l, num_l = get_child_counts(node.left,
+                                            x_l,
+                                            y_l)
+    return (correct_r+correct_l), (num_r+num_l)
     
-def learn(root, X, Y, impurity_measure):
+def get_majority_label(node, dict={}):
+    if node.get_label() != None:
+        try:
+            dict[node.label] += 1
+        except:
+            try:
+                dict.update({node.label : 1})
+            except:
+                dict = {node.label : 1}
+    else:
+        dict_2 = get_majority_label(node.right, dict)
+        dict_3 = get_majority_label(node.left, dict_2)    
+        majority_label = max(dict_3, key=dict_3.get)
+        return majority_label
+    
+    return dict
+
+    
+# Returns a pointer to a node
+def prune(node, X_prune, Y_prune):
+    # Traversed to below a leaf
+    if node == None:
+        return node
+    
+    # If node is a leaf
+    if node.right and node.left == None:
+        return node # no pruning takes place --> leaf
+
+    # Remember right = classified as true
+    x_r, y_r, x_l, y_l = split(node, X_prune, Y_prune)
+    # Prune children first to start from bottom up
+    node.right = prune(node.right, x_r, y_r)
+    node.left = prune(node.right, x_l, y_l)
+
+    correct, num = get_child_counts(node, X_prune, Y_prune)
+    if num == 0:
+        return node # Case where no pruning data partitioned into node
+    else:
+        acc_test = correct/num
+    
+    # Accuracy with no test (based on majority labels)
+    # vals, counts = np.unique(Y_prune, return_counts=True)
+    # max_val_idx = np.where(vals == np.ndarray.max(vals))
+    # max_val = counts[max_val_idx]
+    maj_label = get_majority_label(node)
+    
+    c = 0
+    for y in Y_prune:
+        if y == maj_label: 
+            c+=1
+    acc_no_test = c/len(Y_prune)
+    
+    # Determine whether to prune
+    if acc_no_test >= acc_test:
+        # If pruning --> make leaf with majority label
+        node.set_children(None, None)
+        node.make_leaf(maj_label)
+    
+    return node # Return tree as is
+    
+def learn(root, X, Y, impurity_measure, pruning=False, seed=None):
+    if pruning:
+        # Divide into pruning data
+        X, X_prune, Y, Y_prune = train_test_split(X,
+                                                  Y,
+                                                  test_size=0.3,
+                                                  shuffle=True,
+                                                  random_state=seed)
     if impurity_measure == 'entropy':
         metric = 0
     elif impurity_measure == 'gini':
@@ -135,8 +249,24 @@ def learn(root, X, Y, impurity_measure):
         print('ERROR: IMPROPER LEARNING METRIC')
         return
     learn_Node(root, X, Y, metric)
-    # return rootNode
-    # Can then use rootNode.predict(x) to predict any x
+    
+    if pruning:
+        prune(root, X_prune, Y_prune)
+        # Remember right = classified as true
+        # data_right = []
+        # labels_right = []
+        # data_left = []
+        # labels_left =[]
+        # for x, y in zip(X_prune, Y_prune):
+        #     if root.predict(x):
+        #         data_right.append(x)
+        #         labels_right.append(y)
+        #     else:
+        #         data_left.append(x)
+        #         labels_left.append(y)
+        # prune(root.right, data_right, labels_right)
+        # prune(root.left, data_left, labels_left)
+    return root
 
 def load_magic(filename):
     X = []
@@ -160,6 +290,7 @@ def main():
     # X = D[:, 0:9]
     # Y = D[:, 10]
     X, Y = load_magic(magic04)
+    # Y labels are now in ASCII --> convert back to determine class
     # print('Shape of X: '+str(X.shape))
     # print('Shape of Y: '+str(Y.shape))
     seed = 156
@@ -168,13 +299,18 @@ def main():
                                                         test_size=0.2,
                                                         shuffle=True, 
                                                         random_state=seed)
-    
-    
+
     print('\n** TRAINING **')
-    # Y labels are now in ASCII --> convert back to determine class
     impurity = 'gini'
+    prune = True
     entropy_tree = Node()
-    learn(entropy_tree, X_train, Y_train, impurity_measure=impurity)
+    learn(entropy_tree, 
+          X_train, 
+          Y_train, 
+          impurity_measure=impurity, 
+          pruning=prune,
+          seed=seed)
+    
     print('Finished training %s model'%(impurity))
     
     print('\n** PRINT TREE **')
