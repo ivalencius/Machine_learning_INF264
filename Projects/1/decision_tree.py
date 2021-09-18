@@ -74,7 +74,7 @@ def learn_Node(node, X, Y, metric):
         # print('Case 1')
         newLeaf = Node()
         newLeaf.make_leaf(label=Y.item(0))
-        node.set_weight(len(X))
+        # node.set_weight(len(X))
         # print(newLeaf)
         return newLeaf
     # print('here')
@@ -86,7 +86,7 @@ def learn_Node(node, X, Y, metric):
         label_idx = counts.index(max((counts)))
         newLeaf = Node()
         newLeaf.make_leaf(label=labels[label_idx])
-        node.set_weight(len(X))
+        # node.set_weight(len(X))
         # print(newLeaf)
         return newLeaf
     
@@ -142,14 +142,15 @@ def split(node, X, Y):
     labels_right = []
     data_left = []
     labels_left =[]
-    for x, y in zip(X, Y):
-        if node.predict(x):
-            data_right.append(x)
-            labels_right.append(y)
+    row, _ = X.shape
+    for i in range(row):
+        if node.predict(X[i, :]) == chr(Y[i]):
+            data_right.append(X[i, :])
+            labels_right.append(Y[i])
         else:
-            data_left.append(x)
-            labels_left.append(y)
-    return data_right, labels_right, data_left, labels_left
+            data_left.append(X[i, :])
+            labels_left.append(Y[i])
+    return np.array(data_right), np.array(labels_right), np.array(data_left), np.array(labels_left)
 
 # Determines accuracy of a subtree
 # def get_child_counts(node, X, Y):
@@ -175,92 +176,163 @@ def split(node, X, Y):
 #                                             y_l)
 #     return (correct_r+correct_l), (num_r+num_l)
     
-def get_majority_label(node, dict={}):
-    if node.get_label() is not None:
-        # print(node.get_label())
-        try:
-            dict[node.label] += node.get_weight()
-        except:
-            # try:
-            # print(node.label)
-            dict[node.label] = node.get_weight()
-            # except:
-            #     dict = {node.label : 1}
-    else:
-        dict_2 = get_majority_label(node.right, dict)
-        dict_3 = get_majority_label(node.left, dict_2)    
-        # majority_label = max(dict_3, key=dict_3.get)
-        # print(dict_3)
-        # print(majority_label)
-        # return majority_label
-        return dict_3
+# def get_majority_label(node, dict={}):
+#     if node.get_label() is not None:
+#         # print(node.get_label())
+#         try:
+#             dict[node.label] += node.get_weight()
+#         except:
+#             # try:
+#             # print(node.label)
+#             dict[node.label] = node.get_weight()
+#             # except:
+#             #     dict = {node.label : 1}
+#     else:
+#         dict_2 = get_majority_label(node.right, dict)
+#         dict_3 = get_majority_label(node.left, dict_2)    
+#         # majority_label = max(dict_3, key=dict_3.get)
+#         # print(dict_3)
+#         # print(majority_label)
+#         # return majority_label
+#         return dict_3
     
-    return dict
+#     return dict
 
     
 # Returns a pointer to a node
-def prune(node, X_prune, Y_prune):
-    # X_prune = np.asmatrix(X_prune)
-    #X_prune/Y_prune are now array of arrays
-    # Traversed to below a leaf
-    if node is None:
+# def prune(node, X_prune, Y_prune, X_train, Y_train):
+#     # X_prune = np.asmatrix(X_prune)
+#     #X_prune/Y_prune are now array of arrays
+#     # Traversed to below a leaf
+#     if node is None:
+#         return node
+    
+#     # No data reached node
+#     if len(X_prune) == 0:
+#         return node # Empty pruning array
+    
+#     # If node is a leaf
+#     if node.right and node.left is None:
+#         return node # no pruning takes place --> leaf
+
+#     # Remember right = classified as true
+#     tx_r, ty_r, tx_l, ty_l = split(node, X_train, Y_train)
+#     x_r, y_r, x_l, y_l = split(node, X_prune, Y_prune)
+#     # Prune children first to start from bottom up
+#     node.right = prune(node.right, x_r, y_r, tx_r, ty_r)
+#     node.left = prune(node.left, x_l, y_l, tx_l, ty_l)
+
+#     # correct, num = get_child_counts(node, X_prune, Y_prune)
+#     # if num == 0:
+#     #     return node # Case where no pruning data partitioned into node
+#     # else:
+#     #     acc_test = correct/num
+#     # X_prune is an ndarray
+#     # row,_ = X_prune.shape
+    
+#     # Accuracy with test
+#     correct = 0
+#     for i in range(len(X_prune)):
+#         # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
+#         # Y_pred.append(ord(X[i, :]))
+#         pred = ord(node.predict(X_prune[i]))
+#         if pred == Y_prune[i]: correct += 1
+    
+#     acc_test = correct/len(Y_prune)
+
+#     # Accuracy with no test (based on majority labels)
+#     # vals, counts = np.unique(Y_prune, return_counts=True)
+#     # max_val_idx = np.where(vals == np.ndarray.max(vals))
+#     # max_val = counts[max_val_idx]
+#     # label_dict = get_majority_label(node)
+#     # maj_label = max(label_dict, key=label_dict.get)
+#     # # sum_label = sum(label_dict.values())
+#     # maj_label_weight = label_dict[maj_label]
+#     # maj_label = 0
+#     acc_test = len(tx_r)/len(X_train) # -> # predicted correctly/len
+#     # c = 0
+#     # for y in Y_prune:
+#     #     if y == maj_label: 
+#     #         c+=1
+#     # acc_no_test = c/len(Y_prune)
+    
+#     # Determine whether to prune
+#     if acc_no_test >= acc_test:
+#         # print('Acc no test: %f, | Acc test: %f'%(acc_no_test, acc_test))
+#         # If pruning --> make leaf with majority label
+#         node.set_children(None, None)
+#         node.make_leaf(maj_label)
+#         node.set_weight(maj_label_weight)
+    
+#     return node # Return pruned node
+
+def prune(node, X_prune, Y_prune, X_train, Y_train):
+    
+    if node.is_leaf():
         return node
     
-    # No data reached node
-    if len(X_prune) == 0:
-        return node # Empty pruning array
+    if not node.has_children():
+        return node
     
-    # If node is a leaf
-    if node.right and node.left is None:
-        return node # no pruning takes place --> leaf
-
-    # Remember right = classified as true
-    x_r, y_r, x_l, y_l = split(node, X_prune, Y_prune)
-    # Prune children first to start from bottom up
-    node.right = prune(node.right, x_r, y_r)
-    node.left = prune(node.right, x_l, y_l)
-
-    # correct, num = get_child_counts(node, X_prune, Y_prune)
-    # if num == 0:
-    #     return node # Case where no pruning data partitioned into node
-    # else:
-    #     acc_test = correct/num
-    # X_prune is an ndarray
-    # row,_ = X_prune.shape
+    # Split training and pruning data based on condition of node
+    try:
+        X_train_r, Y_train_r, X_train_l, Y_train_l = split(node, X_train, Y_train)
+        X_prune_r, Y_prune_r, X_prune_l, Y_prune_l = split(node, X_prune, Y_prune)
+    except:
+        return node # No data to split
+    # Prune children nodes
+    node.right = prune(node.right, X_prune_r, Y_prune_r, X_train_r, Y_train_r)
+    node.left = prune(node.left, X_prune_l, Y_prune_l, X_train_l, Y_train_l)
     
-    # Accuracy with test
+    # 1 - For each child node make a leaf with majority label
+    # leaf_right = Node()
+    # leaf_left = Node()
+    # Get majority class
+    labels, counts = np.unique(Y_train, return_counts=True)
+    # maj_label = labels[counts.index(max(counts))]
+    if type(labels) == np.int32:
+        maj_label = labels
+    else:
+        maj_label = labels[np.where(counts == np.ndarray.max(counts))]
+        maj_label = maj_label[0]
+    print(maj_label)
+    # labels_r, counts_r = np.unique(Y_train_r)
+    # labels_l, counts_l = np.unique(Y_train_l)
+    
+    # maj_r = labels_r[counts_r.index(max(counts_r))]
+    # maj_l = labels_l[counts_l.index(max(counts_l))]
+    
+    # # assign majority label to leaf
+    # leaf_right.make_leaf(maj_r)
+    # leaf_left.make_leaf(maj_l)
+    
+    # 2 - Accuracy with no split
+    count = 0
+    for i in range(len(Y_prune)):
+        if Y_prune[i] == maj_label: 
+            count += 1
+    acc_no_split = count/len(Y_prune)
+    
+    # 3- Accuracy with split
+    try:
+        row, _ = X_prune.shape
+    except:
+        row = 1
     correct = 0
-    for i in range(len(X_prune)):
+    for i in range(row):
         # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
         # Y_pred.append(ord(X[i, :]))
-        pred = ord(node.predict(X_prune[i]))
-        if pred == Y_prune[i]: correct += 1
+        pred = node.predict(X_prune[i, :])
+        if pred == chr(Y_prune[i]): correct += 1
+    acc_split = correct/len(Y_prune)
     
-    acc_test = correct/len(Y_prune)
-
-    # Accuracy with no test (based on majority labels)
-    # vals, counts = np.unique(Y_prune, return_counts=True)
-    # max_val_idx = np.where(vals == np.ndarray.max(vals))
-    # max_val = counts[max_val_idx]
-    label_dict = get_majority_label(node)
-    maj_label = max(label_dict, key=label_dict.get)
-    # sum_label = sum(label_dict.values())
-    maj_label_weight = label_dict[maj_label]
-    c = 0
-    for y in Y_prune:
-        if y == maj_label: 
-            c+=1
-    acc_no_test = c/len(Y_prune)
-    
-    # Determine whether to prune
-    if acc_no_test >= acc_test:
-        # print('Acc no test: %f, | Acc test: %f'%(acc_no_test, acc_test))
+    if acc_no_split >= acc_split:
+        print('Acc no split: %f, | Acc split: %f'%(acc_no_split, acc_split))
         # If pruning --> make leaf with majority label
         node.set_children(None, None)
         node.make_leaf(maj_label)
-        node.set_weight(maj_label_weight)
-    
-    return node # Return pruned node
+        
+    return node
     
 def learn(root, X, Y, impurity_measure, pruning=False, seed=None):
     if pruning:
@@ -280,21 +352,7 @@ def learn(root, X, Y, impurity_measure, pruning=False, seed=None):
     learn_Node(root, X, Y, metric)
     
     if pruning:
-        prune(root, X_prune, Y_prune)
-        # Remember right = classified as true
-        # data_right = []
-        # labels_right = []
-        # data_left = []
-        # labels_left =[]
-        # for x, y in zip(X_prune, Y_prune):
-        #     if root.predict(x):
-        #         data_right.append(x)
-        #         labels_right.append(y)
-        #     else:
-        #         data_left.append(x)
-        #         labels_left.append(y)
-        # prune(root.right, data_right, labels_right)
-        # prune(root.left, data_left, labels_left)
+        prune(root, X_prune, Y_prune, X, Y)
     return root
 
 def load_magic(filename):
@@ -364,8 +422,8 @@ def main():
     for i in range(row):
         # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
         # Y_pred.append(ord(X[i, :]))
-        pred = ord(Tree.predict(X_test[i, :]))
-        if pred == Y_test[i]: correct += 1
+        pred = Tree.predict(X_test[i, :])
+        if pred == chr(Y_test[i]): correct += 1
     
     print('\n** ACCURACY **')
     acc = correct/row
