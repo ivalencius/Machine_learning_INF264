@@ -227,19 +227,19 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     err_split = wrong/len(Y_prune)
     
     if err_no_split < err_split:
-        print('Err no split: %f, | Err split: %f'%(err_no_split, err_split))
+        # print('Err no split: %f, | Err split: %f'%(err_no_split, err_split))
         # If pruning --> make leaf with majority label
         node.set_children(None, None)
         node.make_leaf(maj_label)
         
     return node
     
-def learn(root, X, Y, impurity_measure, pruning=False, seed=None):
+def learn(root, X, Y, impurity_measure, pruning=False, prune_sz=0, seed=None):
     if pruning:
         # Divide into pruning data
         X, X_prune, Y, Y_prune = train_test_split(X,
                                                 Y,
-                                                test_size=0.3,
+                                                test_size=prune_sz,
                                                 shuffle=True,
                                                 random_state=seed)
     if impurity_measure == 'entropy':
@@ -267,6 +267,16 @@ def load_magic(filename):
         Y.append(y_int)
     return np.asarray(X), np.asarray(Y)
 
+def get_acc(node, X, Y):
+    row, _ = X.shape
+    correct = 0
+    for i in range(row):
+        # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
+        # Y_pred.append(ord(X[i, :]))
+        pred = node.predict(X[i, :])
+        if pred == chr(Y[i]): correct += 1
+    return correct/len(Y)
+
 def main():
     print('\n** LOADING DATA **')
     magic04 = open('magic04.data', 'r')
@@ -290,32 +300,46 @@ def main():
     print('\n** TRAINING **')
     impurity = 'gini'
     prune = True
-    Tree = Node()
-    learn(Tree, 
-          X_train, 
-          Y_train, 
-          impurity_measure=impurity, 
-          pruning=prune,
-          seed=seed)
+    Tree_e =  Node()
+    Tree_ep = Node()
+    Tree_g = Node()
+    Tree_gp = Node() 
+    Trees = [Tree_e, Tree_ep, Tree_g, Tree_gp]
+    params = [('entropy', False, 0.0),
+              ('entropy', True, 0.3),
+              ('gini', False, 0.0),
+              ('gini', True, 0.3)]
+    for Tree, param in zip(Trees, params): 
+        metric, prune, sz = param
+        learn(Tree,
+              X_train,
+              Y_train,
+              impurity_measure=metric,
+              pruning=prune,
+              prune_sz=sz,
+              seed=seed)
+    # learn(Tree, 
+    #       X_train, 
+    #       Y_train, 
+    #       impurity_measure=impurity, 
+    #       pruning=prune,
+    #       seed=seed)
     
-    print('Finished training %s model'%(impurity))
+    # print('Finished training %s model'%(impurity))
     
     print('\n** PRINT TREE **')
     # Tree.print_Nodes()
     
     print('\n** EVALUATING **')
-    # Y_pred = []
-    row, _ = X_test.shape
-    correct = 0
-    for i in range(row):
-        # print('\nPrediction '+str(i)+': ' +Tree.predict(X[i,:]))
-        # Y_pred.append(ord(X[i, :]))
-        pred = Tree.predict(X_test[i, :])
-        if pred == chr(Y_test[i]): correct += 1
+    for Tree, param in zip(Trees, params): 
+        acc = str(get_acc(Tree, X_test, Y_test))
+        print('TREE:')
+        print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
+        print('\tTest Accuracy: '+acc)
+        
     
-    print('\n** ACCURACY **')
-    acc = correct/row
-    print('\t->'+str(acc))
+    # print('\n** ACCURACY **')
+    # print('\t->'+str(acc))
         
     
 main()
