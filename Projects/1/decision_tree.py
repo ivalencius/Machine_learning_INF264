@@ -135,8 +135,8 @@ def learn_Node(node, X, Y, metric):
     # condition = lambda x: x[feature_idx] >= Means[feature_idx]
     node.add_condition(feature_idx, Means[feature_idx])
     # SPLIT INTO X1, X2, Y1, Y2 BASED ON CONDITION
-    X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
-    # X1, Y1, X2, Y2 = split(node, X, Y)
+    # X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
+    X1, Y1, X2, Y2 = split(node, X, Y)
     
     yesNode = Node()
     noNode= Node()
@@ -158,7 +158,7 @@ def split(node, X, Y):
     except:
         row = 0
     for i in range(row):
-        if node.predict(X[i, :]) == chr(Y[i]):
+        if node.test_condition(X[i, :]):
             data_right.append(X[i, :])
             labels_right.append(Y[i])
         else:
@@ -184,8 +184,9 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     #     return node
     
     # Split training and pruning data based on condition of node
-    X_train_r, Y_train_r, X_train_l, Y_train_l = split(node, X_train, Y_train)
     X_prune_r, Y_prune_r, X_prune_l, Y_prune_l = split(node, X_prune, Y_prune)
+    X_train_r, Y_train_r, X_train_l, Y_train_l = split(node, X_train, Y_train)
+
     # return node # No data to split
     
     # Prune children nodes
@@ -200,8 +201,8 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     try:
         maj_label_arr = labels[np.where(counts == np.ndarray.max(counts))]
         maj_label = maj_label_arr[0]
-        print(labels, counts)
-        print('\t'+str(maj_label))
+        # print(labels, counts)
+        # print('\t'+str(maj_label))
     except:
         maj_label = labels # case where labels not an array -> just one value
     # print(maj_label)
@@ -253,6 +254,7 @@ def learn(root, X, Y, impurity_measure, pruning=False, prune_sz=0, seed=None):
     learn_Node(root, X, Y, metric)
     
     if pruning:
+        print('\n** PRUNING **')
         prune(root, X_prune, Y_prune, X, Y)
     return root
 
@@ -299,51 +301,54 @@ def main():
                                                         random_state=seed)
 
     print('\n** TRAINING **')
-    impurity = 'gini'
-    prune = True
-    Tree = Node()
-    learn(Tree, 
-          X_train, 
-          Y_train, 
-          impurity_measure=impurity, 
-          pruning=prune,
-          prune_sz=0.3,
-          seed=seed)
-    print('Finished training %s model'%(impurity))
-    print('\n** TREE **')
     
-    # Tree.print_Nodes()
+    # # For testing model
+    # impurity = 'gini'
+    # prune = True
+    # Tree = Node()
+    # learn(Tree, 
+    #       X_train, 
+    #       Y_train, 
+    #       impurity_measure=impurity, 
+    #       pruning=prune,
+    #       prune_sz=0.3,
+    #       seed=seed)
+    # print('Finished training %s model'%(impurity))
     
-    print('\n** ACCURACY **\n'+str(get_acc(Tree, X_test, Y_test)))
-        
-    # Tree_e =  Node()
-    # Tree_ep = Node()
-    # Tree_g = Node()
-    # Tree_gp = Node() 
-    # Trees = [Tree_e, Tree_ep, Tree_g, Tree_gp]
-    # params = [('entropy', False, 0.0),
-    #           ('entropy', True, 0.3),
-    #           ('gini', False, 0.0),
-    #           ('gini', True, 0.3)]
-    # for Tree, param in zip(Trees, params): 
-    #     metric, prune, sz = param
-    #     learn(Tree,
-    #           X_train,
-    #           Y_train,
-    #           impurity_measure=metric,
-    #           pruning=prune,
-    #           prune_sz=sz,
-    #           seed=seed)
+    # print('\n** TREE **')
     
-    
-    # print('\n** PRINT TREE **')
     # # Tree.print_Nodes()
     
-    # print('\n** EVALUATING **')
-    # for Tree, param in zip(Trees, params): 
-    #     acc = str(get_acc(Tree, X_test, Y_test))
-    #     print('TREE:')
-    #     print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
-    #     print('\tTest Accuracy: '+acc)     
+    # print('\n** ACCURACY **\n'+str(get_acc(Tree, X_test, Y_test)))
+        
+    Tree_e =  Node()
+    Tree_ep = Node()
+    Tree_g = Node()
+    Tree_gp = Node() 
+    Trees = [Tree_e, Tree_ep, Tree_g, Tree_gp]
+    params = [('entropy', False, 0.0),
+              ('entropy', True, 0.3),
+              ('gini', False, 0.0),
+              ('gini', True, 0.3)]
+    for Tree, param in zip(Trees, params): 
+        metric, prune, sz = param
+        learn(Tree,
+              X_train,
+              Y_train,
+              impurity_measure=metric,
+              pruning=prune,
+              prune_sz=sz,
+              seed=seed)
+    
+    
+    print('\n** PRINT TREE **')
+    # Tree.print_Nodes()
+    
+    print('\n** EVALUATING **')
+    for Tree, param in zip(Trees, params): 
+        acc = str(get_acc(Tree, X_test, Y_test))
+        print('TREE:')
+        print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
+        print('\tTest Accuracy: '+acc)     
     
 main()
