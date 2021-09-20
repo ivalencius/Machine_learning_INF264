@@ -254,7 +254,7 @@ def learn(root, X, Y, impurity_measure, pruning=False, prune_sz=0, seed=None):
     learn_Node(root, X, Y, metric)
     
     if pruning:
-        print('\n** PRUNING **')
+        # print('\n** PRUNING **')
         prune(root, X_prune, Y_prune, X, Y)
     return root
 
@@ -355,7 +355,7 @@ def main():
     for Tree, param in zip(Trees, params): 
         acc = str(get_acc(Tree, X_val, Y_val))
         accs.append(acc)
-        # print('TREE:')
+        print('\n\tTREE:')
         print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
         print('\tValidation Accuracy: '+acc)    
         
