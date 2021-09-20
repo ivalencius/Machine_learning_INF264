@@ -100,25 +100,20 @@ def learn_Node(node, X, Y, metric):
     # If all data points have same label
     labels, counts= np.unique(Y, return_counts=True)
     if len(labels) == 1:
-        # print(Y)
-        # print()
-        # print('Case 1')
         newLeaf = Node()
         newLeaf.make_leaf(label=Y.item(0))
-        # node.set_weight(len(X))
-        # print(newLeaf)
+        # if type(Y.item(0)) != int:
+        #     print(Y.item(0))
         return newLeaf
-    # print('here')
+
     # Case 2:
     # If all data points have identical feature values
     unique_feature = len(np.unique(X))
     if unique_feature == 1:
-        # print('Case 2')
         label_idx = counts.index(max((counts)))
         newLeaf = Node()
         newLeaf.make_leaf(label=labels[label_idx])
-        # node.set_weight(len(X))
-        # print(newLeaf)
+        # print(labels[label_idx])
         return newLeaf
     
     # Case 3:
@@ -135,29 +130,21 @@ def learn_Node(node, X, Y, metric):
         Means.append(mean)
 
     # Determine feature with max gain
-    # feature_idx = list.index(max(IGs))
     feature_idx = np.argmax(IGs, axis=0) 
     # Remember this index also index of the FEATURE
-    condition = lambda x: x[feature_idx] >= Means[feature_idx]
-    node.add_condition(condition)
+    # condition = lambda x: x[feature_idx] >= Means[feature_idx]
+    node.add_condition(feature_idx, Means[feature_idx])
     # SPLIT INTO X1, X2, Y1, Y2 BASED ON CONDITION
     X1, X2, Y1, Y2 = split_by_mean(X, Y, Means[feature_idx], col=feature_idx)
-    # print('X len:'+str(len(X)))
-    # print('X1:'+str(len(X1)))
-    # print('X2:'+str(len(X2)))
-    # print(Y1)
-    # print(Y2)
-    # print()
+    # X1, Y1, X2, Y2 = split(node, X, Y)
+    
     yesNode = Node()
     noNode= Node()
+    
     node_left = learn_Node(noNode, X2, Y2, metric)
-    # node_left.print_Nodes()
     node_right = learn_Node(yesNode, X1, Y1, metric)
-    # node_right.print_Nodes()
+    
     node.set_children(node_left, node_right)
-    # print('Set Children')
-    # node.print_Nodes()
-    # print(node.left)
     return node
 
 
@@ -166,7 +153,10 @@ def split(node, X, Y):
     labels_right = []
     data_left = []
     labels_left =[]
-    row, _ = X.shape
+    try:
+        row, _ = X.shape
+    except:
+        row = 0
     for i in range(row):
         if node.predict(X[i, :]) == chr(Y[i]):
             data_right.append(X[i, :])
@@ -181,27 +171,37 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     if node.is_leaf():
         return node
     
-    if not node.has_children():
+    if len(Y_prune) == 0:
         return node
     
+    # if len(Y_train) == 0:
+    #     return node
+    
+    # if not node.has_children():
+    #     return node
+    
+    # if len(Y_train) == 0:
+    #     return node
+    
     # Split training and pruning data based on condition of node
-    try:
-        X_train_r, Y_train_r, X_train_l, Y_train_l = split(node, X_train, Y_train)
-        X_prune_r, Y_prune_r, X_prune_l, Y_prune_l = split(node, X_prune, Y_prune)
-    except:
-        return node # No data to split
+    X_train_r, Y_train_r, X_train_l, Y_train_l = split(node, X_train, Y_train)
+    X_prune_r, Y_prune_r, X_prune_l, Y_prune_l = split(node, X_prune, Y_prune)
+    # return node # No data to split
     
     # Prune children nodes
-    node.right = prune(node.right, X_prune_r, Y_prune_r, X_train_r, Y_train_r)
-    node.left = prune(node.left, X_prune_l, Y_prune_l, X_train_l, Y_train_l)
+    prune(node.right, X_prune_r, Y_prune_r, X_train_r, Y_train_r)
+    prune(node.left, X_prune_l, Y_prune_l, X_train_l, Y_train_l)
     
     # 1 - Test node without split
     labels, counts = np.unique(Y_train, return_counts=True)
+    # print(labels, counts)
     
     # maj_label = labels[counts.index(max(counts))]
     try:
         maj_label_arr = labels[np.where(counts == np.ndarray.max(counts))]
         maj_label = maj_label_arr[0]
+        print(labels, counts)
+        print('\t'+str(maj_label))
     except:
         maj_label = labels # case where labels not an array -> just one value
     # print(maj_label)
@@ -229,8 +229,9 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     if err_no_split < err_split:
         # print('Err no split: %f, | Err split: %f'%(err_no_split, err_split))
         # If pruning --> make leaf with majority label
-        node.set_children(None, None)
+        node.clear_node()
         node.make_leaf(maj_label)
+        # print(maj_label)
         
     return node
     
@@ -300,46 +301,49 @@ def main():
     print('\n** TRAINING **')
     impurity = 'gini'
     prune = True
-    Tree_e =  Node()
-    Tree_ep = Node()
-    Tree_g = Node()
-    Tree_gp = Node() 
-    Trees = [Tree_e, Tree_ep, Tree_g, Tree_gp]
-    params = [('entropy', False, 0.0),
-              ('entropy', True, 0.3),
-              ('gini', False, 0.0),
-              ('gini', True, 0.3)]
-    for Tree, param in zip(Trees, params): 
-        metric, prune, sz = param
-        learn(Tree,
-              X_train,
-              Y_train,
-              impurity_measure=metric,
-              pruning=prune,
-              prune_sz=sz,
-              seed=seed)
-    # learn(Tree, 
-    #       X_train, 
-    #       Y_train, 
-    #       impurity_measure=impurity, 
-    #       pruning=prune,
-    #       seed=seed)
+    Tree = Node()
+    learn(Tree, 
+          X_train, 
+          Y_train, 
+          impurity_measure=impurity, 
+          pruning=prune,
+          prune_sz=0.3,
+          seed=seed)
+    print('Finished training %s model'%(impurity))
+    print('\n** TREE **')
     
-    # print('Finished training %s model'%(impurity))
-    
-    print('\n** PRINT TREE **')
     # Tree.print_Nodes()
     
-    print('\n** EVALUATING **')
-    for Tree, param in zip(Trees, params): 
-        acc = str(get_acc(Tree, X_test, Y_test))
-        print('TREE:')
-        print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
-        print('\tTest Accuracy: '+acc)
+    print('\n** ACCURACY **\n'+str(get_acc(Tree, X_test, Y_test)))
         
+    # Tree_e =  Node()
+    # Tree_ep = Node()
+    # Tree_g = Node()
+    # Tree_gp = Node() 
+    # Trees = [Tree_e, Tree_ep, Tree_g, Tree_gp]
+    # params = [('entropy', False, 0.0),
+    #           ('entropy', True, 0.3),
+    #           ('gini', False, 0.0),
+    #           ('gini', True, 0.3)]
+    # for Tree, param in zip(Trees, params): 
+    #     metric, prune, sz = param
+    #     learn(Tree,
+    #           X_train,
+    #           Y_train,
+    #           impurity_measure=metric,
+    #           pruning=prune,
+    #           prune_sz=sz,
+    #           seed=seed)
     
-    # print('\n** ACCURACY **')
-    # print('\t->'+str(acc))
-        
+    
+    # print('\n** PRINT TREE **')
+    # # Tree.print_Nodes()
+    
+    # print('\n** EVALUATING **')
+    # for Tree, param in zip(Trees, params): 
+    #     acc = str(get_acc(Tree, X_test, Y_test))
+    #     print('TREE:')
+    #     print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
+    #     print('\tTest Accuracy: '+acc)     
     
 main()

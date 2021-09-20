@@ -8,7 +8,18 @@ class Node:
         self.right = None
         # Node gets label ONLY when it is a leaf
         self.label = None
+        self.feature_idx = None
+        self.mean = None
         # self.weight = None
+        
+    def clear_node(self):
+        self.condition = None
+        self.left = None
+        self.right = None
+        # Node gets label ONLY when it is a leaf
+        self.label = None
+        self.feature_idx = None
+        self.mean = None
         
     def make_leaf(self, label):
         self.label = label
@@ -28,15 +39,19 @@ class Node:
             return True
         
     # Given a condition, add it 
-    def add_condition(self, case):
-        self.condition = case
+    def add_condition(self, feature_idx, mean):
+        self.feature_idx = feature_idx
+        self.mean = mean
         
+    def test_condition(self, x):
+         return x[self.feature_idx] >= self.mean
+     
     # Returns the label of the Node if it is a leaf or else 
     # branches based on condition and classifies via next Node
     def predict(self, x):
         if self.is_leaf():
             return chr(self.label)
-        test = self.condition(x)
+        test = self.test_condition(x)
         if test:
             val = self.right.predict(x) # Condition was true, branch right
         else:
@@ -57,11 +72,16 @@ class Node:
     
     # Prints all children nodes
     def print_Nodes(self):
-        if self.label != None:
-            print('LEAF LABEL: '+str(self.label))
+        if self.is_leaf():
+             print('LEAF LABEL: '+str(self.label))
         else:
+            right_child = 'R: \n'
+            left_child ='L: \n'
             print('NODE: ')
-            self.left.print_Nodes()
+            print(right_child)
             self.right.print_Nodes()
+            print(left_child)
+            self.left.print_Nodes()
+            return right_child, left_child
             # print('split on feature: '+str(self.cond))
                   
