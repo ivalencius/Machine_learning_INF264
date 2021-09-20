@@ -293,12 +293,18 @@ def main():
     # Y labels are now in ASCII --> convert back to determine class
     # print('Shape of X: '+str(X.shape))
     # print('Shape of Y: '+str(Y.shape))
-    seed = 156
-    X_train, X_test, Y_train, Y_test = train_test_split(X,
+    seed = None
+    X_train_val, X_test, Y_train_val, Y_test = train_test_split(X,
                                                         Y,
-                                                        test_size=0.2,
+                                                        test_size=0.15,
                                                         shuffle=True, 
                                                         random_state=seed)
+    
+    X_train, X_val, Y_train, Y_val = train_test_split(X_train_val,
+                                                      Y_train_val, 
+                                                      test_size=0.15,
+                                                      shuffle=True,
+                                                      random_state=seed)
 
     print('\n** TRAINING **')
     
@@ -345,10 +351,20 @@ def main():
     # Tree.print_Nodes()
     
     print('\n** EVALUATING **')
+    accs = []
     for Tree, param in zip(Trees, params): 
-        acc = str(get_acc(Tree, X_test, Y_test))
+        acc = str(get_acc(Tree, X_val, Y_val))
+        accs.append(acc)
         print('TREE:')
         print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
-        print('\tTest Accuracy: '+acc)     
+        print('\tValidation Accuracy: '+acc)    
+        
+    print('\n** BEST MODEL **')
+    best = accs.index(max(accs))
+    best_param = params[best]
+    best_acc = str(get_acc(Trees[best], X_test, Y_test))
+    print('TREE:')
+    print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
+    print('\tAccuracy on Test Set: '+best_acc)    
     
 main()
