@@ -1,8 +1,8 @@
 from math import log2
 import numpy as np
-from numpy.lib.npyio import genfromtxt
 from structures import Node
 from sklearn.model_selection import train_test_split
+from sklearn import tree
 
 # Split condition, outputs X s.t. X1 = X1>=mean and X2<mean
 def split_by_mean(X, Y, mean, col):
@@ -355,7 +355,7 @@ def main():
     for Tree, param in zip(Trees, params): 
         acc = str(get_acc(Tree, X_val, Y_val))
         accs.append(acc)
-        print('TREE:')
+        # print('TREE:')
         print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
         print('\tValidation Accuracy: '+acc)    
         
@@ -363,8 +363,23 @@ def main():
     best = accs.index(max(accs))
     best_param = params[best]
     best_acc = str(get_acc(Trees[best], X_test, Y_test))
-    print('TREE:')
-    print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
-    print('\tAccuracy on Test Set: '+best_acc)    
+    # print('TREE:')
+    print('\tMetric: %s | Pruning: %d | Prune Size: %f'%best_param)
+    print('\tAccuracy on Test Set: '+best_acc)
+    
+    # Test on sklearn
+    sk_tree = tree.DecisionTreeClassifier()
+    
+    sk_tree.fit(X_train, Y_train)
+    
+    preds = sk_tree.predict(X_test)
+    
+    correct = 0
+    for pred, y in zip(preds, Y_test):
+        if pred == y:
+            correct += 1
+    
+    print('\n** SKLEARN **')
+    print('\tAccuracy: '+str(correct/len(preds)))
     
 main()
