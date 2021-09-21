@@ -10,13 +10,11 @@ class Node:
         self.label = None
         self.feature_idx = None
         self.mean = None
-        # self.weight = None
-        
+
     def clear_node(self):
         self.condition = None
         self.left = None
         self.right = None
-        # Node gets label ONLY when it is a leaf
         self.label = None
         self.feature_idx = None
         self.mean = None
@@ -63,25 +61,18 @@ class Node:
         self.left = nodeL
         self.right = nodeR
     
-    # # Number of training points reaching the node
-    # def set_weight(self, count):
-    #     self.weight = count
-        
-    # def get_weight(self):
-    #     return self.weight
-    
     # Prints all children nodes
-    def print_Nodes(self):
-        if self.is_leaf():
-             print('LEAF LABEL: '+str(self.label))
-        else:
-            right_child = 'R: \n'
-            left_child ='L: \n'
-            print('NODE: ')
-            print(right_child)
-            self.right.print_Nodes()
-            print(left_child)
-            self.left.print_Nodes()
-            return right_child, left_child
-            # print('split on feature: '+str(self.cond))
+    # def print_Nodes(self):
+    #     if self.is_leaf():
+    #          print('LEAF LABEL: '+str(self.label))
+    #     else:
+    #         right_child = 'R: \n'
+    #         left_child ='L: \n'
+    #         print('NODE: ')
+    #         print(right_child)
+    #         self.right.print_Nodes()
+    #         print(left_child)
+    #         self.left.print_Nodes()
+    #         return right_child, left_child
+    #         # print('split on feature: '+str(self.cond))
                   
