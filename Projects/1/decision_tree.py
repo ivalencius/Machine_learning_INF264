@@ -25,8 +25,8 @@ def entropy(Y, Y_split1, Y_split2, conditional):
     (unique, counts) = np.unique(Y, return_counts=True)
     H = 0
     if not conditional:
-        for xi, xn in zip(unique, counts):
-            Hi= xi/N * log2(xi/N)
+        for xn in counts:
+            Hi= xn/N * log2(xn/N)
             H += Hi
         H = -H
     if conditional:
@@ -45,6 +45,26 @@ def entropy(Y, Y_split1, Y_split2, conditional):
         #     H += xi/N * -(split_xi/split_N * log2(split_xi/split_N))     
     return H
 
+def gini2(Y, Y_split1, Y_split2, conditional):
+    N = len(Y)
+    (unique, counts) = np.unique(Y, return_counts=True)
+    H = 0
+    if not conditional:
+        for xn in counts:
+            Hi= xn/N * (1 - xn/N)
+            H += Hi
+        H = -H
+    if conditional:
+        H = 0
+        
+        split1_H = gini2(Y_split1, Y_split1, Y_split2, conditional=False)
+        split2_H = gini2(Y_split2, Y_split1, Y_split2, conditional=False)
+        split1_N = len(Y_split1)
+        split2_N = len(Y_split2)
+        
+        H = (split1_N/N)*split1_H + (split2_N/N)*split2_H
+    return H
+
 def gini(Y):
     # if N == 0:
     #     return 0
@@ -52,33 +72,11 @@ def gini(Y):
     (_, counts) = np.unique(Y, return_counts=True)
     G = 0
     for xn in counts:
-        Gi= xn/N * (1-(xn/N))
+        # Gi= xn/N * (1-(xn/N))
+        Gi = (xn/N) **2
         G += Gi
-    return G
-    # Calculate percent branch represents -> weighting
-    # w_Y1 = len(Y1)/N
-    # w_Y2 = len(Y2)/N
-    # # For each class in branch
-    # # Branch 1
-    # _, count_1 = np.unique(Y1, return_counts=True)
-    # N1 = len(Y1)
-    # sum_p1 = 0
-    # for x in count_1:
-    #     p_x = x/(N1)
-    #     p_x2 = p_x**2
-    #     sum_p1 += p_x2
-    # gini_branch_1 = 1-sum_p1*w_Y1
-    # # Branch 2
-    # _, count_2 = np.unique(Y2, return_counts=True)
-    # N2 = len(Y2)
-    # sum_p2 = 0
-    # for x in count_1:
-    #     p_x = x/(N2)
-    #     p_x2 = p_x**2
-    #     sum_p2 += p_x2
-    # gini_branch_2 = 1-sum_p2*w_Y2
-    
-    # return gini_branch_1+gini_branch_2
+    return 1-G
+
         
 def information_gain(Y, Y_split1, Y_split2, metric):
     if metric == 0: # Use Entropy
@@ -90,8 +88,12 @@ def information_gain(Y, Y_split1, Y_split2, metric):
             return 0
         w1 = len(Y_split1)/len(Y)
         w2 = len(Y_split2)/len(Y)
-        IG = 1- (gini(Y_split1)*w1 + gini(Y_split2)*w2)
-        # print(IG)
+        IG = gini(Y) - (gini(Y_split1)*w1 + gini(Y_split2)*w2)
+        # IG = 1 - (gini(Y_split1) + gini(Y_split2))
+        # G1 = gini2(Y, Y_split1, Y_split2, conditional=False)
+        # G2 = gini2(Y, Y_split1, Y_split2, conditional=True)
+        # IG = G1-G2
+        
     return IG
     
 
@@ -108,8 +110,7 @@ def learn_Node(node, X, Y, metric):
 
     # Case 2:
     # If all data points have identical feature values
-    unique_feature = len(np.unique(X))
-    if unique_feature == 1:
+    if len(np.unique(X)) == 1:
         label_idx = counts.index(max((counts)))
         newLeaf = Node()
         newLeaf.make_leaf(label=labels[label_idx])
@@ -356,7 +357,7 @@ def main():
         acc = str(get_acc(Tree, X_val, Y_val))
         accs.append(acc)
         print('\n\tTREE:')
-        print('\tMetric: %s | Pruning: %d | Prune Size: %f'%param)
+        print('\tMetric: %s | Pruning: %s | Prune Size: %f'%param)
         print('\tValidation Accuracy: '+acc)    
         
     print('\n** BEST MODEL **')
@@ -364,7 +365,7 @@ def main():
     best_param = params[best]
     best_acc = str(get_acc(Trees[best], X_test, Y_test))
     # print('TREE:')
-    print('\tMetric: %s | Pruning: %d | Prune Size: %f'%best_param)
+    print('\tMetric: %s | Pruning: %s | Prune Size: %f'%best_param)
     print('\tAccuracy on Test Set: '+best_acc)
     
     # Test on sklearn
