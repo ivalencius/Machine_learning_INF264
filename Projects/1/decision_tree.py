@@ -233,22 +233,18 @@ def prune(node, X_prune, Y_prune, X_train, Y_train):
     except:
         maj_label = labels # case where labels not an array -> just one value
     
-    # 2 - Accuracy with no split
+    # 2 - Error with no split
     wrong_count = 0
     for i in range(len(Y_prune)):
         if Y_prune[i] != maj_label: 
             wrong_count += 1
     err_no_split = wrong_count/len(Y_prune)
     
-    # 3- Accuracy with split
-    try:
-        row, _ = X_prune.shape
-    except:
-        row = 1 # Only one data point
+    # 3- Error with split
     
     err_split = 1- get_acc(node, X_prune, Y_prune)
     
-    if err_no_split < err_split:
+    if err_no_split <= err_split:
         node.clear_node()
         node.make_leaf(maj_label)
         
